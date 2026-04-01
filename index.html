@@ -210,7 +210,6 @@
                 <button class="btn-warning" onclick="toggleHistory()">📋 Storico</button>
                 <button class="btn-success" id="exportBtn" onclick="exportData()">📥 Esporta</button>
                 <button class="btn-info" id="importBtn" onclick="document.getElementById('importFile').click()">📤 Importa</button>
-             
             </div>
         </div>
         <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(event)">
@@ -306,14 +305,12 @@
     const app = {
         users: [],
         logs: [],
-        history: [],
         editingId: null,
         deleteId: null,
         editBalanceId: null,
         filteredUsers: [],
         isSearching: false,
-        showHistory: false,
-        MAX_HISTORY: 50
+        showHistory: false
     };
 
     // INITIALIZATION
@@ -337,7 +334,6 @@
         try {
             localStorage.setItem('users', JSON.stringify(app.users));
             localStorage.setItem('logs', JSON.stringify(app.logs));
-            saveHistory();
         } catch (e) {
             showNotification('Errore nel salvataggio dei dati', 'error');
         }
@@ -347,39 +343,9 @@
         try {
             app.users = JSON.parse(localStorage.getItem('users')) || [];
             app.logs = JSON.parse(localStorage.getItem('logs')) || [];
-            app.history = JSON.parse(localStorage.getItem('history')) || [];
         } catch (e) {
             showNotification('Errore nel caricamento dei dati', 'error');
         }
-    }
-
-    function saveHistory() {
-        try {
-            localStorage.setItem('history', JSON.stringify(app.history.slice(0, app.MAX_HISTORY)));
-        } catch (e) {
-            console.error('Errore nel salvataggio della cronologia', e);
-        }
-    }
-
-    // UNDO/REDO SYSTEM
-    function addToHistory(action) {
-        app.history.unshift({
-            action,
-            users: JSON.parse(JSON.stringify(app.users)),
-            logs: JSON.parse(JSON.stringify(app.logs)),
-            timestamp: new Date().toISOString()
-        });
-        app.history = app.history.slice(0, app.MAX_HISTORY);
-        saveHistory();
-        updateUndoButton();
-    }
-
-    
-
-    function updateUndoButton() {
-        const btn = document.getElementById('undoBtn');
-        btn.disabled = app.history.length === 0;
-        btn.style.opacity = app.history.length === 0 ? '0.5' : '1';
     }
 
     // USER MANAGEMENT
@@ -400,8 +366,6 @@
             showNotification('Inserisci un nome e un saldo valido', 'error');
             return;
         }
-
-        addToHistory(app.editingId ? `Modificato ${name}` : `Aggiunto ${name}`);
 
         if (app.editingId) {
             const user = app.users.find(u => u.id === app.editingId);
@@ -447,8 +411,6 @@
 
     function confirmDelete() {
         if (!app.deleteId) return;
-        const user = app.users.find(u => u.id === app.deleteId);
-        addToHistory(`Eliminato ${user.name}`);
         app.users = app.users.filter(u => u.id !== app.deleteId);
         saveData();
         closeModal('confirmModal');
@@ -475,10 +437,8 @@
             return;
         }
 
-        const oldBalance = user.balance;
         user.balance = parseFloat((user.balance + change).toFixed(2));
 
-        addToHistory(`Saldo di ${user.name} modificato da ${oldBalance}€ a ${user.balance}€`);
         addLog(`${change >= 0 ? '➕' : '➖'} ${user.name}: ${change > 0 ? '+' : ''}${change.toFixed(2)}€`, change >= 0 ? 'credit' : 'debit');
 
         saveData();
@@ -502,7 +462,6 @@
             balance: parseFloat(balance.toFixed(2))
         });
 
-        addToHistory(`Aggiunto ${name}`);
         saveData();
         document.getElementById('quickName').value = '';
         document.getElementById('quickBalance').value = '';
@@ -529,14 +488,11 @@
     function confirmDebitAll() {
         const note = document.getElementById('debitNote').value.trim();
         
-        addToHistory('Detratto 1€ a tutti');
-        
         app.users.forEach(u => u.balance = parseFloat((u.balance - 1).toFixed(2)));
 
         const timestamp = new Date();
         const dateString = timestamp.toLocaleDateString('it-IT') + ' ' + timestamp.toLocaleTimeString('it-IT');
         
-        // CORREZIONE APPLICATA QUI: rimossi i tag HTML dalle note dello storico
         const logMessage = `[${dateString}] Detratto 1€ a tutti${note ? ' - ' + note : ''}`;
         
         app.logs.unshift(logMessage);
@@ -564,7 +520,6 @@
     function render() {
         renderUsers();
         updateStats();
-        updateUndoButton();
     }
 
     function renderUsers() {
@@ -638,7 +593,6 @@
         }
     }
 
-    // CORREZIONE APPLICATA QUI: rimossi i tag HTML salvati come stringa
     function addLog(message, type = 'debit') {
         const now = new Date();
         const timestamp = now.toLocaleDateString('it-IT') + ' ' + now.toLocaleTimeString('it-IT');
@@ -686,7 +640,6 @@
                     throw new Error('Formato file non valido');
                 }
 
-                addToHistory('Importato backup');
                 app.users = imported.users;
                 app.logs = imported.logs || [];
                 saveData();
@@ -700,7 +653,6 @@
         reader.readAsText(file);
     }
 
-    
     // MODAL MANAGEMENT
     function openModal(modalId) {
         const modal = document.getElementById(modalId);
