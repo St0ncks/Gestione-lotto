@@ -25,6 +25,19 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         h1, h2 { text-align: center; }
+        
+        /* Stile per il Deposito Totale */
+        .deposito-box {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
         .form-group {
             display: flex;
             gap: 10px;
@@ -107,6 +120,10 @@
 
 <div class="container">
     <h1>Gestione Utenti</h1>
+    
+    <div class="deposito-box">
+        Deposito: <span id="totalDeposit">0.00 €</span>
+    </div>
     
     <div class="form-group">
         <input type="text" id="userName" placeholder="Nome Utente">
@@ -210,14 +227,20 @@
     function getBalanceClass(balance) {
         if (balance > 0) return 'saldo-positivo';
         if (balance < 0) return 'saldo-negativo';
-        return 'saldo-zero'; // Se uguale a 0 (Uso un giallo scuro nel CSS per evitare che non si legga su sfondo bianco)
+        return 'saldo-zero';
     }
 
     // Disegna l'interfaccia
     function render() {
         const userList = document.getElementById('userList');
         const logList = document.getElementById('logList');
+        const totalDepositElement = document.getElementById('totalDeposit');
         
+        // Calcola il deposito totale e applica il colore corretto
+        const totalDeposit = users.reduce((sum, user) => sum + user.balance, 0);
+        totalDepositElement.textContent = `${totalDeposit.toFixed(2)} €`;
+        totalDepositElement.className = getBalanceClass(totalDeposit);
+
         // Render Utenti
         userList.innerHTML = "";
         users.forEach(user => {
