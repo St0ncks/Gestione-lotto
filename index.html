@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Saldi</title>
+    <style>
+        :root {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        body {
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1, h2 { text-align: center; }
+        .form-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+        }
+        button:hover { background-color: #0056b3; }
+        .btn-global {
+            width: 100%;
+            background-color: #6f42c1;
+            margin-bottom: 20px;
+            padding: 15px;
+            font-size: 16px;
+        }
+        .btn-global:hover { background-color: #59359a; }
+        
+        .user-card {
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .actions {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        .actions button {
+            flex: 1;
+            font-size: 12px;
+            padding: 8px;
+        }
+        .btn-delete { background-color: #dc3545; }
+        .btn-delete:hover { background-color: #c82333; }
+        .btn-edit { background-color: #ffc107; color: black; }
+        .btn-edit:hover { background-color: #e0a800; }
+        
+        /* Colori Saldo */
+        .saldo-positivo { color: #28a745; } /* Verde */
+        .saldo-zero { color: #d39e00; }     /* Giallo scuro per leggibilità */
+        .saldo-negativo { color: #dc3545; } /* Rosso */
+
+        .log-box {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+        .log-box p { margin: 5px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Gestione Utenti</h1>
+    
+    <div class="form-group">
+        <input type="text" id="userName" placeholder="Nome Utente">
+        <input type="number" id="userBalance" placeholder="Saldo (€)">
+        <button onclick="addUser()">Aggiungi</button>
+    </div>
+
+    <button class="btn-global" onclick="detraiTutti()">Togli 1€ a tutti e Salva Nota</button>
+
+    <div id="userList"></div>
+
+    <h2>Note Detrazioni</h2>
+    <div class="log-box" id="logList"></div>
+</div>
+
+<script>
+    // Inizializza i dati caricandoli dalla cache locale o crea array vuoti
+    let users = JSON.parse(localStorage.getItem('users')) || [];
+    let logs = JSON.parse(localStorage.getItem('logs')) || [];
+
+    // Salva i dati nella cache locale
+    function saveData() {
+        localStorage.setItem('users', JSON.stringify(users));
+        localStorage.setItem('logs', JSON.stringify(logs));
+        render();
+    }
+
+    // Aggiungi un nuovo utente
+    function addUser() {
+        const nameInput = document.getElementById('userName');
+        const balanceInput = document.getElementById('userBalance');
+        
+        const name = nameInput.value.trim();
+        const balance = parseFloat(balanceInput.value);
+
+        if (name === "" || isNaN(balance)) {
+            alert("Inserisci un nome e un saldo valido.");
+            return;
+        }
+
+        users.push({ id: Date.now(), name: name, balance: balance });
+        nameInput.value = "";
+        balanceInput.value = "";
+        saveData();
+    }
+
+    // Elimina utente
+    function deleteUser(id) {
+        if(confirm("Sei sicuro di voler eliminare questo utente?")) {
+            users = users.filter(u => u.id !== id);
+            saveData();
+        }
+    }
+
+    // Cambia nome
+    function editName(id) {
+        const user = users.find(u => u.id === id);
+        const newName = prompt("Inserisci il nuovo nome:", user.name);
+        if (newName !== null && newName.trim() !== "") {
+            user.name = newName.trim();
+            saveData();
+        }
+    }
+
+    // Modifica saldo manualmente (Aggiungi/Sottrai)
+    function editBalance(id) {
+        const user = users.find(u => u.id === id);
+        const change = prompt(`Inserisci quanto vuoi aggiungere o sottrarre (es: 5 per aggiungere, -3 per sottrarre) al saldo di ${user.name}:`, "0");
+        
+        if (change !== null) {
+            const amount = parseFloat(change);
+            if (!isNaN(amount)) {
+                user.balance += amount;
+                saveData();
+            } else {
+                alert("Inserisci un numero valido.");
+            }
+        }
+    }
+
+    // Detrai 1€ a tutti e salva la nota
+    function detraiTutti() {
+        if (users.length === 0) {
+            alert("Nessun utente presente.");
+            return;
+        }
+
+        if(confirm("Sei sicuro di voler detrarre 1€ da tutti i saldi?")) {
+            users.forEach(u => u.balance -= 1);
+            
+            // Crea la nota con la data di oggi
+            const now = new Date();
+            const dateString = now.toLocaleDateString('it-IT') + " " + now.toLocaleTimeString('it-IT');
+            logs.unshift(`Detratto 1€ a tutti il ${dateString}`); // unshift mette la nota più recente in cima
+            
+            saveData();
+        }
+    }
+
+    // Determina la classe del colore in base al saldo
+    function getBalanceClass(balance) {
+        if (balance > 0) return 'saldo-positivo';
+        if (balance < 0) return 'saldo-negativo';
+        return 'saldo-zero'; // Se uguale a 0 (Uso un giallo scuro nel CSS per evitare che non si legga su sfondo bianco)
+    }
+
+    // Disegna l'interfaccia
+    function render() {
+        const userList = document.getElementById('userList');
+        const logList = document.getElementById('logList');
+        
+        // Render Utenti
+        userList.innerHTML = "";
+        users.forEach(user => {
+            const colorClass = getBalanceClass(user.balance);
+            userList.innerHTML += `
+                <div class="user-card">
+                    <div class="user-header">
+                        <span>${user.name}</span>
+                        <span class="${colorClass}">${user.balance.toFixed(2)} €</span>
+                    </div>
+                    <div class="actions">
+                        <button class="btn-edit" onclick="editName(${user.id})">Modifica Nome</button>
+                        <button onclick="editBalance(${user.id})">Aggiungi/Sottrai Saldo</button>
+                        <button class="btn-delete" onclick="deleteUser(${user.id})">Elimina</button>
+                    </div>
+                </div>
+            `;
+        });
+
+        // Render Note
+        logList.innerHTML = "";
+        logs.forEach(log => {
+            logList.innerHTML += `<p>${log}</p>`;
+        });
+    }
+
+    // Caricamento iniziale
+    render();
+</script>
+
+</body>
+</html>
