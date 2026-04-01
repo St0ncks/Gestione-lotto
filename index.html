@@ -144,7 +144,6 @@
         .log-item { background: white; padding: 12px; border-left: 4px solid var(--primary); margin-bottom: 10px; border-radius: 4px; font-size: 13px; color: #555; }
         .log-item.debit { border-left-color: var(--danger); }
         .log-item.credit { border-left-color: var(--success); }
-        .log-timestamp { color: #999; font-size: 11px; }
 
         /* NOTIFICATIONS */
         .notification {
@@ -552,7 +551,9 @@
 
         const timestamp = new Date();
         const dateString = timestamp.toLocaleDateString('it-IT') + ' ' + timestamp.toLocaleTimeString('it-IT');
-        const logMessage = `Detratto 1€ a tutti il ${dateString}${note ? ' - ' + note : ''}`;
+        
+        // CORREZIONE APPLICATA QUI: rimossi i tag HTML dalle note dello storico
+        const logMessage = `[${dateString}] Detratto 1€ a tutti${note ? ' - ' + note : ''}`;
         
         app.logs.unshift(logMessage);
 
@@ -653,10 +654,11 @@
         }
     }
 
+    // CORREZIONE APPLICATA QUI: rimossi i tag HTML salvati come stringa
     function addLog(message, type = 'debit') {
         const now = new Date();
         const timestamp = now.toLocaleDateString('it-IT') + ' ' + now.toLocaleTimeString('it-IT');
-        app.logs.unshift(`${message} <span class="log-timestamp">${timestamp}</span>`);
+        app.logs.unshift(`[${timestamp}] ${message}`);
         saveData();
     }
 
