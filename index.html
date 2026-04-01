@@ -208,10 +208,9 @@
                 <button class="btn-primary" onclick="openAddUserModal()">➕ Aggiungi Utente</button>
                 <button class="btn-info" onclick="openDebitAllModal()">➖ Detrai 1€ a Tutti</button>
                 <button class="btn-warning" onclick="toggleHistory()">📋 Storico</button>
-                <button class="btn-info" onclick="undoAction()" id="undoBtn">↶ Annulla</button>
                 <button class="btn-success" id="exportBtn" onclick="exportData()">📥 Esporta</button>
                 <button class="btn-info" id="importBtn" onclick="document.getElementById('importFile').click()">📤 Importa</button>
-                <button class="btn-danger" onclick="resetAll()">🗑️ Ripristina</button>
+             
             </div>
         </div>
         <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(event)">
@@ -375,22 +374,7 @@
         updateUndoButton();
     }
 
-    function undoAction() {
-        if (app.history.length === 0) {
-            showNotification('Nessuna azione da annullare', 'info');
-            return;
-        }
-        const previous = app.history.shift();
-        app.users = previous.users;
-        app.logs = previous.logs;
-        saveData();
-        showNotification(`Azione annullata: ${previous.action}`, 'info');
-        
-        document.getElementById('searchInput').value = '';
-        app.isSearching = false;
-        
-        render();
-    }
+    
 
     function updateUndoButton() {
         const btn = document.getElementById('undoBtn');
@@ -716,25 +700,7 @@
         reader.readAsText(file);
     }
 
-    function resetAll() {
-        if (confirm('Sei MOLTO sicuro? Questa azione cancellerà TUTTI i dati e non può essere annullata!')) {
-            app.users = [];
-            app.logs = [];
-            app.history = [];
-            app.filteredUsers = [];
-            document.getElementById('searchInput').value = '';
-            app.isSearching = false;
-            
-            localStorage.removeItem('users');
-            localStorage.removeItem('logs');
-            localStorage.removeItem('history');
-            
-            render();
-            if (app.showHistory) renderLogs();
-            showNotification('Tutti i dati sono stati ripristinati', 'info');
-        }
-    }
-
+    
     // MODAL MANAGEMENT
     function openModal(modalId) {
         const modal = document.getElementById(modalId);
